@@ -1,0 +1,5 @@
+__pycache__/
+dental_tensors/
+*.nii
+*.nii.gz
+desktop.ini

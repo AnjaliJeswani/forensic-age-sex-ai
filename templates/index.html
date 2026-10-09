@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CranioDental AI | Forensic Suite</title>
+    <!-- PDF Generation Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root {
+            --bg-base: #0b0f19;
+            --bg-panel: #151b2b;
+            --bg-viewport: #000000;
+            --accent: #0ea5e9;
+            --text-main: #f8fafc;
+            --text-muted: #64748b;
+            --border: #1e293b;
+            --success: #10b981;
+            --skull-accent: #8b5cf6;
+            --warning: #f59e0b;
+        }
+
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg-base); color: var(--text-main); margin: 0; padding: 0; display: flex; height: 100vh; overflow: hidden; }
+        .sidebar { width: 260px; background: var(--bg-panel); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; }
+        .brand { font-size: 20px; font-weight: 800; letter-spacing: 1px; color: #fff; margin-bottom: 40px; display: flex; align-items: center; gap: 10px; }
+        .brand span { color: var(--accent); }
+        .workspace { flex: 1; display: flex; flex-direction: column; padding: 20px 30px; overflow-y: auto; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+        .header h1 { margin: 0; font-size: 22px; font-weight: 400; color: #e2e8f0; }
+        
+        .dashboard-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 25px; }
+        .viewport-panel { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+        .panel-title { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-top: 0; margin-bottom: 15px; font-weight: bold; display: flex; justify-content: space-between;}
+        
+        .quad-view { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .skull-view { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        
+        .viewport { background: var(--bg-viewport); height: 160px; border: 1px solid #334155; position: relative; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; background-size: cover; background-position: center; transition: 0.2s; }
+        .viewport-label { position: absolute; top: 10px; left: 10px; font-size: 11px; color: rgba(255,255,255,0.8); background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; font-family: monospace; z-index: 2; pointer-events: none; }
+        .file-input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 5; }
+        .upload-icon { color: #334155; font-size: 30px; font-weight: bold; pointer-events: none; }
+
+        .btn-analyze { width: 100%; padding: 16px; margin-top: 20px; background: linear-gradient(135deg, #0284c7, #2563eb); color: white; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: 0.3s; }
+        .btn-export { background: #1e293b; color: #fff; border: 1px solid #334155; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; }
+        .btn-export:hover { background: #334155; }
+        
+        .metric-card { background: #0f131f; border: 1px solid var(--border); padding: 18px; border-radius: 6px; margin-bottom: 12px; }
+        .metric-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .metric-title { font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: bold; }
+        .metric-value { font-size: 28px; font-weight: 300; color: #fff; }
+        .consensus-card { border: 1px solid var(--success); background: rgba(16, 185, 129, 0.05); }
+        
+        .gauge-track { width: 100%; height: 6px; background: #1e293b; border-radius: 3px; margin-top: 8px; overflow: hidden; }
+        .gauge-fill { height: 100%; border-radius: 3px; transition: width 1s ease-in-out; }
+        
+        .alert-banner { background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning); color: var(--warning); padding: 12px; border-radius: 6px; font-size: 13px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        
+        .slider-container { margin-top: 15px; background: #0f131f; padding: 10px; border-radius: 6px; border: 1px solid var(--border); }
+        input[type=range] { width: 100%; cursor: pointer; accent-color: var(--accent); }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="brand">💀🦷 CRANIO<span>DENT</span></div>
+        
+        <div style="font-size: 12px; color: var(--text-muted); padding: 15px; background: #000; border-radius: 6px; border: 1px solid #064e3b; color: #34d399; margin-top:auto;">
+            <strong>SYSTEM STATUS:</strong> ONLINE<br>
+            <strong>MODELS ACTIVE:</strong><br>
+            - Teeth: EffNet-B3<br>
+            - Skull: EffNetV2-S<br><br>
+            {% if results %}
+            <strong style="color:var(--accent);">LATEST INFERENCE:</strong><br>
+            {{ results.exec_time }} ms
+            {% endif %}
+        </div>
+    </aside>
+
+    <main class="workspace">
+        <header class="header">
+            <h1>Craniofacial & Dental Diagnostic Workstation</h1>
+            {% if results %}
+                <button class="btn-export" onclick="exportReport()">📥 EXPORT CLINICAL PDF</button>
+            {% endif %}
+        </header>
+
+        {% if error %}
+        <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; color: #fca5a5; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <div class="dashboard-grid">
+            <!-- INPUT PANEL -->
+            <div class="viewport-panel">
+                <form method="POST" enctype="multipart/form-data">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        
+                        <div>
+                            <div class="panel-title" style="color: var(--accent);">Teeth (4-View CBCT)</div>
+                            <div class="quad-view">
+                                <div class="viewport" id="view_coronal_11" {% if results and results.has_dental and 'coronal_11' in results.dental_originals %}style="background-image: url('{{ results.dental_originals['coronal_11'] }}');"{% endif %}>
+                                    <span class="viewport-label">CORONAL_11</span>
+                                    <span class="upload-icon" {% if results and results.has_dental and 'coronal_11' in results.dental_originals %}style="display:none;"{% endif %}>+</span>
+                                    <input type="file" class="file-input" name="coronal_11" accept="image/*" onchange="previewImage(this, 'view_coronal_11')">
+                                </div>
+                                <div class="viewport" id="view_coronal_21" {% if results and results.has_dental and 'coronal_21' in results.dental_originals %}style="background-image: url('{{ results.dental_originals['coronal_21'] }}');"{% endif %}>
+                                    <span class="viewport-label">CORONAL_21</span>
+                                    <span class="upload-icon" {% if results and results.has_dental and 'coronal_21' in results.dental_originals %}style="display:none;"{% endif %}>+</span>
+                                    <input type="file" class="file-input" name="coronal_21" accept="image/*" onchange="previewImage(this, 'view_coronal_21')">
+                                </div>
+                                <div class="viewport" id="view_sagittal_11" {% if results and results.has_dental and 'sagittal_11' in results.dental_originals %}style="background-image: url('{{ results.dental_originals['sagittal_11'] }}');"{% endif %}>
+                                    <span class="viewport-label">SAGITTAL_11</span>
+                                    <span class="upload-icon" {% if results and results.has_dental and 'sagittal_11' in results.dental_originals %}style="display:none;"{% endif %}>+</span>
+                                    <input type="file" class="file-input" name="sagittal_11" accept="image/*" onchange="previewImage(this, 'view_sagittal_11')">
+                                </div>
+                                <div class="viewport" id="view_sagittal_21" {% if results and results.has_dental and 'sagittal_21' in results.dental_originals %}style="background-image: url('{{ results.dental_originals['sagittal_21'] }}');"{% endif %}>
+                                    <span class="viewport-label">SAGITTAL_21</span>
+                                    <span class="upload-icon" {% if results and results.has_dental and 'sagittal_21' in results.dental_originals %}style="display:none;"{% endif %}>+</span>
+                                    <input type="file" class="file-input" name="sagittal_21" accept="image/*" onchange="previewImage(this, 'view_sagittal_21')">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="panel-title" style="color: var(--skull-accent);">Skull (3D Volumetric)</div>
+                            <div class="skull-view">
+                                <div class="viewport" id="view_skull" style="height: 330px;">
+                                    <span class="viewport-label">UPLOAD .PT / .NII.GZ / .DCM</span>
+                                    {% if results and results.has_skull %}
+                                        <span class="upload-icon" id="skull_icon" style="font-size: 14px; color: var(--success);">Volume Mounted</span>
+                                    {% else %}
+                                        <span class="upload-icon" id="skull_icon">🩻</span>
+                                    {% endif %}
+                                    <input type="file" class="file-input" name="skull_scan" accept=".pt,.nii,.nii.gz,.dcm" onchange="previewText(this, 'skull_icon')">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-analyze">Execute Multimodal Analysis</button>
+                </form>
+            </div>
+
+            <!-- OUTPUT PANEL -->
+            <div class="viewport-panel" id="report-content">
+                <div class="panel-title"><span>Clinical Output Report</span> <span style="color:var(--text-muted); font-weight:normal; font-size:11px;">IPCTI Diagnostic Engine</span></div>
+                
+                {% if results %}
+                    {% if results.high_variance %}
+                    <div class="alert-banner">
+                        <strong>⚠️ HIGH VARIANCE DETECTED:</strong> The dental and cranial evaluations differ by >3.0 years. Manual forensic review recommended.
+                    </div>
+                    {% endif %}
+
+                    <!-- CONSENSUS -->
+                    <div class="metric-card consensus-card">
+                        <div class="metric-header">
+                            <span class="metric-title" style="color: var(--success);">Final Consensus Age</span>
+                        </div>
+                        <div class="metric-value" style="color: var(--success);">{{ results.consensus_age }} <span style="font-size:14px;">Yrs</span></div>
+                        <div style="font-size: 14px; color: var(--text-muted); margin-top: 5px;">Consensus Sex: <span style="color:#fff;">{{ results.consensus_sex }}</span></div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        {% if results.has_dental %}
+                        <div class="metric-card" style="border-top: 3px solid var(--accent);">
+                            <div class="metric-header"><span class="metric-title">Dental Evaluator</span></div>
+                            <div class="metric-value" style="font-size: 20px;">{{ results.dental_age }} Yrs</div>
+                            <div style="font-size: 12px; color: var(--text-muted); margin-top:8px;">{{ results.dental_sex }} ({{ results.dental_conf }}%)</div>
+                            <div class="gauge-track">
+                                <div class="gauge-fill" style="width: {{ results.dental_conf }}%; background: {% if results.dental_sex == 'Male' %}#3b82f6{% else %}#ec4899{% endif %};"></div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if results.has_skull %}
+                        <div class="metric-card" style="border-top: 3px solid var(--skull-accent);">
+                            <div class="metric-header"><span class="metric-title">Cranial Evaluator</span></div>
+                            <div class="metric-value" style="font-size: 20px;">{{ results.skull_age }} Yrs</div>
+                            <div style="font-size: 12px; color: var(--text-muted); margin-top:8px;">{{ results.skull_sex }} ({{ results.skull_conf }}%)</div>
+                            <div class="gauge-track">
+                                <div class="gauge-fill" style="width: {{ results.skull_conf }}%; background: {% if results.skull_sex == 'Male' %}#3b82f6{% else %}#ec4899{% endif %};"></div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- VISUALIZERS -->
+                    <div style="margin-top: 15px; font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight:bold;">Saliency & Features</div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 10px; margin-top: 10px;">
+                        {% if results.has_dental %}
+                            {% for key, img in results.dental_heatmaps.items() %}
+                                <div style="position:relative; aspect-ratio:1; border-radius:4px; border:1px solid var(--accent); overflow:hidden;">
+                                    <!-- Original B&W Scan in background -->
+                                    <img src="{{ results.dental_originals[key] }}" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover;">
+                                    <!-- Colored Heatmap overlay -->
+                                    <img class="heatmap-overlay" src="{{ img }}" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; transition: opacity 0.15s ease;">
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                        
+                        {% if results.has_skull %}
+                            {% for key, img in results.skull_views.items() %}
+                                <div style="position:relative; aspect-ratio:1; border-radius:4px; border:1px solid var(--skull-accent); overflow:hidden;">
+                                    <span style="position:absolute; top:4px; left:4px; font-size:9px; background:rgba(0,0,0,0.7); padding:2px 4px; border-radius:2px; z-index:10;">{{ key }}</span>
+                                    <img src="{{ img }}" style="width:100%; height:100%; object-fit:cover;">
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    
+                    {% if results.has_dental %}
+                    <!-- Opacity Slider -->
+                    <div class="slider-container" id="slider-box">
+                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 5px; display: flex; justify-content: space-between;">
+                            <span>Scan Only</span>
+                            <span>Thermal Overlay</span>
+                        </div>
+                        <input type="range" min="0" max="100" value="100" oninput="document.querySelectorAll('.heatmap-overlay').forEach(el => el.style.opacity = this.value / 100);">
+                    </div>
+                    {% endif %}
+
+                {% else %}
+                    <div style="height: 300px; display: flex; align-items: center; justify-content: center; color: #334155; text-align: center; font-size: 14px;">Awaiting scans for inference.</div>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function previewImage(input, viewportId) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var viewport = document.getElementById(viewportId);
+                    viewport.style.backgroundImage = "url('" + e.target.result + "')";
+                    viewport.querySelector('.upload-icon').style.display = 'none';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        function previewText(input, iconId) {
+            if (input.files && input.files[0]) {
+                document.getElementById(iconId).innerText = "Volume Mounted";
+                document.getElementById(iconId).style.fontSize = "14px";
+                document.getElementById(iconId).style.color = "var(--success)";
+            }
+        }
+        
+        // Generate PDF
+        function exportReport() {
+            var slider = document.getElementById('slider-box');
+            if(slider) slider.style.display = 'none';
+            
+            var element = document.getElementById('report-content');
+            element.style.backgroundColor = '#151b2b'; 
+            
+            var opt = {
+              margin:       10,
+              filename:     'CranioDent_Forensic_Report.pdf',
+              image:        { type: 'jpeg', quality: 0.98 },
+              html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#151b2b' },
+              jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                if(slider) slider.style.display = 'block'; 
+            });
+        }
+    </script>
+</body>
+</html>
