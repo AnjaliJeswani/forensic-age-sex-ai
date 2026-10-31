@@ -23,11 +23,11 @@ print("Loading AI Models into Memory...")
 device = torch.device("cpu") 
 
 dental_model = DentalMultiTaskNet(pretrained=False).to(device)
-dental_model.load_state_dict(torch.load("dental_multitask_model.pth", map_location=device, weights_only=True), strict=False)
+dental_model.load_state_dict(torch.load("dental_multitask_model.pth", map_location="cpu", weights_only=True), strict=False)
 dental_model.eval() 
 
 skull_model = DecoupledForensicHead().to(device)
-skull_model.load_state_dict(torch.load("weights/age_expert_engine_2d.pth", map_location=device, weights_only=True), strict=False)
+skull_model.load_state_dict(torch.load("weights/age_expert_engine_2d.pth", map_location="cpu", weights_only=True), strict=False)
 skull_model.eval()
 
 dental_transform = transforms.Compose([
@@ -204,5 +204,5 @@ def index():
             
     return render_template('index.html', results=None)
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(debug=False)
